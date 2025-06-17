@@ -1,0 +1,2863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameGen - AI Game Maker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 1s ease;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+            background: linear-gradient(45deg, #fff, #f0f8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .workflow-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+            gap: 25px;
+            animation: fadeInUp 1s ease 0.3s both;
+        }
+
+        .step {
+            background: rgba(255,255,255,0.15);
+            padding: 18px 30px;
+            border-radius: 30px;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(15px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .step:hover::before {
+            left: 100%;
+        }
+
+        .step.active {
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            transform: scale(1.08);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            background: rgba(255,255,255,0.95);
+            border-radius: 25px;
+            padding: 50px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            backdrop-filter: blur(20px);
+            animation: fadeInUp 1s ease 0.6s both;
+        }
+
+        .game-templates {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .game-card {
+            border: 3px solid #e0e0e0;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #fff 0%, #f8f9ff 100%);
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-card:hover::before {
+            opacity: 1;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            border-color: #667eea;
+        }
+
+        .game-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-5px) scale(1.05);
+        }
+
+        .game-card h3 {
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .game-card p {
+            margin-bottom: 25px;
+            opacity: 0.85;
+            line-height: 1.6;
+        }
+
+        .game-preview {
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .game-card:hover .game-preview {
+            transform: scale(1.1);
+        }
+
+        .customization-panel {
+            display: none;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .customization-panel.active {
+            display: block;
+        }
+
+        .panel-section {
+            margin-bottom: 35px;
+            padding: 30px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 20px;
+            background: linear-gradient(135deg, #f9fbff 0%, #f0f8ff 100%);
+            transition: all 0.3s ease;
+        }
+
+        .panel-section:hover {
+            border-color: rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.1);
+        }
+
+        .panel-section h3 {
+            margin-bottom: 25px;
+            color: #667eea;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #555;
+            font-size: 1.1rem;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 10px 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+            border-radius: 20px;
+            margin: 20px 0;
+        }
+
+        .loading.active {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 25px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .game-canvas {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            background: #000;
+            margin: 20px auto;
+            display: block;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .preview-panel {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+            border-radius: 20px;
+            margin: 25px 0;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .preview-panel.active {
+            display: block;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .generated-assets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .asset-preview {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .asset-preview:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .asset-preview img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .asset-placeholder {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 2.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .asset-preview:hover .asset-placeholder {
+            transform: scale(1.1);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 25px 0;
+        }
+
+        .param-slider {
+            margin: 15px 0;
+        }
+
+        .param-slider input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #ddd;
+            outline: none;
+            appearance: none;
+        }
+
+        .param-slider input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .param-value {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .ai-suggestion {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0fff0 100%);
+            border: 2px solid #28a745;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            animation: slideInRight 0.5s ease;
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .export-summary {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .mobile-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .mobile-btn:hover {
+            transform: scale(1.1);
+            background: rgba(102, 126, 234, 1);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.5rem; }
+            .workflow-steps { flex-direction: column; align-items: center; }
+            .main-content { padding: 25px; }
+            .game-templates { grid-template-columns: 1fr; }
+            .controls-grid { grid-template-columns: 1fr; }
+            .mobile-controls { display: flex; }
+        }
+
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 GameGen</h1>
+            <p>AI-Powered No-Code Game Maker</p>
+        </div>
+
+        <div class="workflow-steps">
+            <div class="step active" id="step1">1. Pick Template</div>
+            <div class="step" id="step2">2. AI Reskin</div>
+            <div class="step" id="step3">3. Set Parameters</div>
+            <div class="step" id="step4">4. Export Game</div>
+        </div>
+
+        <div class="main-content">
+            <!-- Step 1: Template Selection -->
+            <div id="template-selection" class="step-content active">
+                <h2 style="text-align: center; margin-bottom: 40px; color: #667eea; font-size: 2.2rem;">Choose Your Game Template</h2>
+                <div class="game-templates">
+                    <div class="game-card" data-template="flappy">
+                        <div class="game-preview">🐦</div>
+                        <h3>Flappy Bird</h3>
+                        <p>Navigate through pipes by tapping to fly. Classic arcade-style gameplay with customizable physics.</p>
+                        <button class="btn">Select Template</button>
+                    </div>
+                    <div class="game-card" data-template="runner">
+                        <div class="game-preview">🏃</div>
+                        <h3>Speed Runner</h3>
+                        <p>Endless running adventure with obstacles to jump over and power-ups to collect.</p>
+                        <button class="btn">Select Template</button>
+                    </div>
+                    <div class="game-card" data-template="whack">
+                        <div class="game-preview">🔨</div>
+                        <h3>Whack-a-Mole</h3>
+                        <p>Hit the moles as they pop up from their holes. Fast-paced reaction game with scoring.</p>
+                        <button class="btn">Select Template</button>
+                    </div>
+                    <div class="game-card" data-template="match3">
+                        <div class="game-preview">💎</div>
+                        <h3>Match-3 Puzzle</h3>
+                        <p>Match three or more gems in a row to score points. Strategic puzzle gameplay.</p>
+                        <button class="btn">Select Template</button>
+                    </div>
+                    <div class="game-card" data-template="crossy">
+                        <div class="game-preview">🐸</div>
+                        <h3>Crossy Road</h3>
+                        <p>Cross busy roads and rivers safely while avoiding obstacles and collecting coins.</p>
+                        <button class="btn">Select Template</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: AI Reskinning -->
+            <div id="ai-reskin" class="step-content customization-panel">
+                <h2 style="text-align: center; margin-bottom: 40px; color: #667eea; font-size: 2.2rem;">🤖 AI-Powered Reskinning</h2>
+                
+                <div class="panel-section">
+                    <h3>🎨 Story & Theme</h3>
+                    <div class="form-group">
+                        <label>Game Theme</label>
+                        <select id="theme-select">
+                            <option value="fantasy">🏰 Fantasy Adventure - Dragons, castles, magic</option>
+                            <option value="space">🚀 Space Odyssey - Aliens, planets, futuristic</option>
+                            <option value="underwater">🌊 Underwater World - Fish, coral reefs, submarines</option>
+                            <option value="cyberpunk">🌃 Cyberpunk City - Neon lights, robots, tech</option>
+                            <option value="medieval">⚔️ Medieval Kingdom - Knights, swords, kingdoms</option>
+                            <option value="jungle">🌴 Jungle Safari - Animals, trees, adventure</option>
+                            <option value="candy">🍭 Candy Land - Sweet treats, colorful world</option>
+                            <option value="pirate">🏴‍☠️ Pirate Adventure - Ships, treasure, seas</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Art Style</label>
+                        <select id="art-style">
+                            <option value="cartoon">🎨 Cartoon/Animated - Bright, fun, friendly</option>
+                            <option value="pixel">👾 Pixel Art - Retro 8-bit style</option>
+                            <option value="realistic">📸 Realistic - Detailed, lifelike</option>
+                            <option value="minimalist">⚪ Minimalist - Clean, simple shapes</option>
+                            <option value="hand-drawn">✏️ Hand-drawn - Sketchy, artistic</option>
+                            <option value="neon">⚡ Neon/Glow - Bright, electric colors</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Custom Story Description <span class="tooltip" data-tooltip="Describe your unique game world and story">ℹ️</span></label>
+                        <textarea id="theme-description" placeholder="Tell us about your game world... e.g., 'A magical forest where brave woodland creatures must save their home from an evil sorcerer. The world is filled with glowing mushrooms, talking trees, and hidden fairy paths.'"></textarea>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🌍 Environment & Characters</h3>
+                    <div class="controls-grid">
+                        <div class="form-group">
+                            <label>Main Character</label>
+                            <input type="text" id="main-character" placeholder="e.g., Brave knight, Space pilot, Cute bunny">
+                        </div>
+                        <div class="form-group">
+                            <label>Background Setting</label>
+                            <input type="text" id="background-setting" placeholder="e.g., Enchanted castle, Alien planet, Underwater cave">
+                        </div>
+                        <div class="form-group">
+                            <label>NPCs/Enemies</label>
+                            <input type="text" id="npcs" placeholder="e.g., Friendly dragons, Robot guards, Sea monsters">
+                        </div>
+                        <div class="form-group">
+                            <label>Power-ups/Items</label>
+                            <input type="text" id="powerups" placeholder="e.g., Magic potions, Energy shields, Golden coins">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Color Palette</label>
+                        <select id="color-palette">
+                            <option value="vibrant">🌈 Vibrant & Colorful - Bright, energetic</option>
+                            <option value="dark">🌙 Dark & Moody - Deep, mysterious</option>
+                            <option value="pastel">🌸 Soft Pastels - Gentle, soothing</option>
+                            <option value="neon">⚡ Neon & Electric - Glowing, intense</option>
+                            <option value="earth">🌿 Earth Tones - Natural, organic</option>
+                            <option value="monochrome">⚫ Monochrome - Black and white</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🎵 Audio & Music</h3>
+                    <div class="controls-grid">
+                        <div class="form-group">
+                            <label>Background Music (BGM) Prompt <span class="tooltip" data-tooltip="Describe the BGM: e.g., 'Upbeat 8-bit chiptune for a fast-paced arcade game'">ℹ️</span></label>
+                            <input type="text" id="bgm-prompt" placeholder="e.g., Epic orchestral score for a fantasy adventure">
+                        </div>
+                        <div class="form-group">
+                            <label>Sound Effects Style</label>
+                            <select id="sound-style">
+                                <option value="realistic">🔊 Realistic - Natural sounds</option>
+                                <option value="cartoon">🎪 Cartoon - Fun, exaggerated</option>
+                                <option value="retro">👾 Retro - Classic arcade beeps</option>
+                                <option value="minimal">🔇 Minimal - Subtle, clean</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>💰 In-App Purchase Items (Optional)</h3>
+                    <div id="iap-items-container">
+                        <!-- IAP items will be added here -->
+                    </div>
+                    <button class="btn btn-sm" onclick="addIAPItemField()">+ Add IAP Item</button>
+                </div>
+
+                <div class="preview-panel" id="assets-preview">
+                    <h3>🎨 Generated Assets Preview</h3>
+                    <div class="generated-assets">
+                        <div class="asset-preview">
+                            <div class="asset-placeholder">🎨</div>
+                            <p><strong>Main Character</strong></p>
+                            <small>AI-generated sprite</small>
+                        </div>
+                        <div class="asset-preview">
+                            <div class="asset-placeholder">🌄</div>
+                            <p><strong>Background</strong></p>
+                            <small>Environment art</small>
+                        </div>
+                        <div class="asset-preview">
+                            <div class="asset-placeholder">👾</div>
+                            <p><strong>NPCs/Enemies</strong></p>
+                            <small>Character sprites</small>
+                        </div>
+                        <div class="asset-preview">
+                            <div class="asset-placeholder">⚡</div>
+                            <p><strong>Effects</strong></p>
+                            <small>Particle systems</small>
+                        </div>
+                        <div class="asset-preview">
+                            <div class="asset-placeholder">🎵</div>
+                            <p><strong>Music</strong></p>
+                            <small>Background track</small>
+                        </div>
+                        <div class="asset-preview">
+                            <div class="asset-placeholder">🔊</div>
+                            <p><strong>Sound FX</strong></p>
+                            <small>Game audio</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn" onclick="generateAssets()">🤖 Generate AI Assets (60s)</button>
+                    <button class="btn btn-secondary" onclick="previousStep()">← Back</button>
+                    <button class="btn" onclick="nextStep()" id="continue-params" disabled>Continue to Parameters →</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Game Parameters -->
+            <div id="game-parameters" class="step-content customization-panel">
+                <h2 style="text-align: center; margin-bottom: 40px; color: #667eea; font-size: 2.2rem;">⚙️ AI-Powered Game Tuning</h2>
+                
+                <div class="panel-section">
+                    <h3>🎯 Difficulty & Feel</h3>
+                    <div class="form-group">
+                        <label>Target Difficulty</label>
+                        <select id="difficulty" onchange="updateDifficulty()">
+                            <option value="easy">😊 Easy - Relaxed, casual gameplay</option>
+                            <option value="medium" selected>😐 Medium - Balanced challenge</option>
+                            <option value="hard">😤 Hard - Expert mode, fast-paced</option>
+                            <option value="custom">🛠️ Custom - Manual fine-tuning</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Target Audience</label>
+                        <select id="target-audience">
+                            <option value="kids">👶 Kids (3-8) - Simple, forgiving</option>
+                            <option value="teens">👦 Teens (9-17) - Moderate challenge</option>
+                            <option value="adults" selected>👨 Adults (18+) - Full complexity</option>
+                            <option value="seniors">👴 Seniors (50+) - Accessible design</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🎮 Core Game Parameters</h3>
+                    <div class="controls-grid" id="game-params">
+                        <!-- Dynamic parameters based on selected template -->
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🤖 AI Smart Suggestions & Logic</h3>
+                    <div class="form-group">
+                        <label>Natural Language Tuning (Gameplay Tweaks) <span class="tooltip" data-tooltip="Describe desired changes: e.g., 'Make it harder', 'More obstacles', 'Faster player'">ℹ️</span></label>
+                        <textarea id="ai-prompt" rows="3" placeholder="e.g., 'Increase enemy speed and add more health packs'"></textarea>
+                        <button class="btn btn-sm" onclick="processAIPrompt()">💡 Get AI Gameplay Suggestions</button>
+                    </div>
+                    <div class="form-group">
+                        <label>AI Logic Extension (Experimental) <span class="tooltip" data-tooltip="Describe minor logic changes: e.g., 'Make moles shake before appearing' (Note: Complex changes may not be fully supported)">ℹ️</span></label>
+                        <textarea id="ai-logic-prompt" rows="2" placeholder="e.g., 'Player jumps higher after collecting a coin'"></textarea>
+                        <button class="btn btn-sm" onclick="processAILogicPrompt()">🧠 Apply Logic Change</button>
+                    </div>
+                    <div id="ai-suggestions"></div>
+                </div>
+
+                <div class="preview-panel" id="game-preview">
+                    <h3>🎮 Live Game Preview</h3>
+                    <canvas id="gameCanvas" class="game-canvas" width="800" height="600"></canvas>
+                    <div style="margin-top: 20px;">
+                        <button class="btn" onclick="testGame()">▶️ Test Play</button>
+                        <button class="btn btn-secondary" onclick="resetGame()">🔄 Reset</button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-secondary" onclick="previousStep()">← Back</button>
+                    <button class="btn" onclick="nextStep()">Continue to Export →</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Export Game -->
+            <div id="export-game" class="step-content customization-panel">
+                <h2 style="text-align: center; margin-bottom: 40px; color: #667eea; font-size: 2.2rem;">📦 Export Your Game</h2>
+                
+                <div class="export-summary">
+                    <h3>🎮 Your Game Summary</h3>
+                    <div class="controls-grid">
+                        <div>
+                            <h4>Template:</h4>
+                            <p id="export-template">-</p>
+                        </div>
+                        <div>
+                            <h4>Theme:</h4>
+                            <p id="export-theme">-</p>
+                        </div>
+                        <div>
+                            <h4>Difficulty:</h4>
+                            <p id="export-difficulty">-</p>
+                        </div>
+                        <div>
+                            <h4>Art Style:</h4>
+                            <p id="export-art">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>📱 Export Options</h3>
+                    <div class="form-group">
+                        <label>Game Title</label>
+                        <input type="text" id="game-title" placeholder="My Awesome Game">
+                    </div>
+                    <div class="form-group">
+                        <label>Export Format</label>
+                        <select id="export-format">
+                            <option value="html5">📱 HTML5 (Mobile-Friendly)</option>
+                            <option value="desktop">💻 Desktop Optimized</option>
+                            <option value="both">🌐 Universal (Both)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Include Features</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+                            <label><input type="checkbox" id="include-audio" checked> 🔊 Audio Files</label>
+                            <label><input type="checkbox" id="include-assets" checked> 🎨 All Assets</label>
+                            <label><input type="checkbox" id="include-source" checked> 📝 Source Code</label>
+                            <label><input type="checkbox" id="include-readme"> 📖 README Guide</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🚀 Final Features</h3>
+                    <ul class="feature-list">
+                        <li>Fully playable HTML5 game</li>
+                        <li>Mobile touch controls included</li>
+                        <li>Offline playable (no internet required)</li>
+                        <li>All custom AI-generated assets</li>
+                        <li>Optimized for web sharing</li>
+                        <li>Cross-platform compatible</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-success" onclick="exportGame()">📦 Export Game (.zip)</button>
+                    <button class="btn" onclick="shareGame()">🌐 Share Online</button>
+                    <button class="btn btn-secondary" onclick="previousStep()">← Back</button>
+                </div>
+            </div>
+
+            <!-- Loading States -->
+            <div class="loading" id="loading-assets">
+                <div class="spinner"></div>
+                <h3>🤖 AI is generating your assets...</h3>
+                <p>Creating custom graphics, sounds, and music for your game</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="assets-progress"></div>
+                </div>
+                <p id="loading-status">Initializing AI models...</p>
+            </div>
+
+            <div class="loading" id="loading-export">
+                <div class="spinner"></div>
+                <h3>📦 Packaging your game...</h3>
+                <p>Compiling assets and generating HTML5 game files</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="export-progress"></div>
+                </div>
+                <p id="export-status">Preparing files...</p>
+            </div>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div class="mobile-controls">
+            <button class="mobile-btn" onclick="previousStep()">←</button>
+            <button class="mobile-btn" onclick="nextStep()">→</button>
+            <button class="mobile-btn" onclick="testGame()">▶</button>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentStep = 1;
+        let selectedTemplate = null;
+        let gameConfig = {};
+        let generatedAssets = {};
+        let gameInstance = null;
+        let globalState = { // Consolidate global state related to user choices
+            selectedTemplate: null,
+            gameParameters: {},
+            aiLogicPrompt: ''
+        };
+
+        // Template configurations
+        const gameTemplates = {
+            flappy: {
+                name: "Flappy Bird",
+                params: {
+                    gravity: { min: 0.3, max: 0.8, default: 0.5, label: "Gravity" },
+                    jumpPower: { min: 6, max: 12, default: 9, label: "Jump Power" },
+                    pipeGap: { min: 80, max: 150, default: 120, label: "Pipe Gap" },
+                    gameSpeed: { min: 1, max: 4, default: 2, label: "Game Speed" }
+                }
+            },
+            runner: {
+                name: "Speed Runner",
+                params: {
+                    runSpeed: { min: 3, max: 8, default: 5, label: "Run Speed" },
+                    jumpHeight: { min: 100, max: 200, default: 150, label: "Jump Height" },
+                    obstacleFreq: { min: 0.5, max: 2, default: 1, label: "Obstacle Frequency" },
+                    powerUpFreq: { min: 0.1, max: 0.5, default: 0.2, label: "Power-up Frequency" }
+                }
+            },
+            whack: {
+                name: "Whack-a-Mole",
+                params: {
+                    moleSpeed: { min: 800, max: 2000, default: 1200, label: "Mole Pop Speed (ms)" },
+                    moleStayTime: { min: 500, max: 1500, default: 1000, label: "Mole Stay Time (ms)" },
+                    maxMoles: { min: 1, max: 4, default: 2, label: "Max Simultaneous Moles" },
+                    gameTime: { min: 30, max: 120, default: 60, label: "Game Duration (s)" }
+                }
+            },
+            match3: {
+                name: "Match-3 Puzzle",
+                params: {
+                    gridSize: { min: 6, max: 10, default: 8, label: "Grid Size" },
+                    gemTypes: { min: 4, max: 8, default: 6, label: "Gem Types" },
+                    moves: { min: 15, max: 50, default: 30, label: "Moves per Level" },
+                    cascadeDelay: { min: 200, max: 600, default: 400, label: "Cascade Delay (ms)" }
+                }
+            },
+            crossy: {
+                name: "Crossy Road",
+                params: {
+                    laneWidth: { min: 40, max: 80, default: 60, label: "Lane Width" },
+                    carSpeed: { min: 1, max: 5, default: 2.5, label: "Traffic Speed" },
+                    coinFreq: { min: 0.1, max: 0.4, default: 0.2, label: "Coin Frequency" },
+                    riverFlow: { min: 0.5, max: 2, default: 1, label: "River Flow Speed" }
+                }
+            }
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updateStepVisibility();
+        });
+
+        function setupEventListeners() {
+            // Template selection
+            document.querySelectorAll('.game-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectTemplate(this.dataset.template);
+                });
+            });
+
+            // Form changes
+            document.getElementById('difficulty').addEventListener('change', updateDifficulty);
+            document.getElementById('theme-select').addEventListener('change', updateTheme);
+        }
+
+        function selectTemplate(template) {
+            globalState.selectedTemplate = template; // Use globalState
+            selectedTemplate = template; // Keep for direct use if any old code relies on it
+            
+            // Update UI
+            document.querySelectorAll('.game-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`[data-template="${template}"]`).classList.add('selected');
+            
+            // Store config
+            gameConfig.template = template;
+            gameConfig.templateName = gameTemplates[template].name;
+            globalState.gameParameters = {}; // Reset params for new template
+            
+            // Auto-advance after selection
+            setTimeout(() => nextStep(), 800);
+        }
+
+        function nextStep() {
+            if (currentStep < 4) {
+                currentStep++;
+                updateStepVisibility();
+                updateWorkflowSteps();
+                
+                if (currentStep === 3) {
+                    generateGameParameters();
+                }
+                if (currentStep === 4) {
+                    updateExportSummary();
+                }
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepVisibility();
+                updateWorkflowSteps();
+            }
+        }
+
+        function updateStepVisibility() {
+            // Hide all step contents
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show current step
+            const stepMap = {
+                1: 'template-selection',
+                2: 'ai-reskin',
+                3: 'game-parameters',
+                4: 'export-game'
+            };
+            
+            document.getElementById(stepMap[currentStep]).classList.add('active');
+        }
+
+        function updateWorkflowSteps() {
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.toggle('active', index + 1 === currentStep);
+            });
+        }
+
+        function generateAssets() {
+            const loadingDiv = document.getElementById('loading-assets');
+            const continueBtn = document.getElementById('continue-params');
+            
+            loadingDiv.classList.add('active');
+            continueBtn.disabled = true;
+            
+            // Simulate AI asset generation
+            const steps = [
+                "Analyzing theme and style preferences...",
+                "Generating character sprites...",
+                "Creating background environments...",
+                "Designing UI elements...",
+                "Composing background music...",
+                "Creating sound effects...",
+                "Optimizing assets...",
+                "Finalizing generation..."
+            ];
+            
+            let progress = 0;
+            let stepIndex = 0;
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 15 + 5;
+                if (progress > 100) progress = 100;
+                
+                document.getElementById('assets-progress').style.width = progress + '%';
+                
+                if (stepIndex < steps.length - 1 && progress > (stepIndex + 1) * 12.5) {
+                    stepIndex++;
+                }
+                document.getElementById('loading-status').textContent = steps[stepIndex];
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loadingDiv.classList.remove('active');
+                        document.getElementById('assets-preview').classList.add('active');
+                        continueBtn.disabled = false;
+                        
+                        // Store generated assets info
+                        storeGeneratedAssets();
+                    }, 1000);
+                }
+            }, 200);
+        }
+
+        function storeGeneratedAssets() {
+            const theme = document.getElementById('theme-select').value;
+            const artStyle = document.getElementById('art-style').value;
+            
+            generatedAssets = {
+                theme,
+                artStyle,
+                character: document.getElementById('main-character').value || 'Hero character',
+                background: document.getElementById('background-setting').value || 'Game world',
+                npcs: document.getElementById('npcs').value || 'Game entities',
+                music: document.getElementById('music-style').value,
+                sounds: document.getElementById('sound-style').value
+            };
+            
+            gameConfig.assets = generatedAssets;
+        }
+
+        function generateGameParameters() {
+            if (!selectedTemplate) return;
+            
+            const template = gameTemplates[selectedTemplate];
+            const paramsContainer = document.getElementById('game-params');
+            
+            paramsContainer.innerHTML = '';
+            
+            Object.entries(template.params).forEach(([key, param]) => {
+                const paramDiv = document.createElement('div');
+                paramDiv.className = 'form-group';
+                paramDiv.innerHTML = `
+                    <label>${param.label}</label>
+                    <div class="param-slider">
+                        <input type="range" id="${key}" min="${param.min}" max="${param.max}" 
+                               value="${param.default}" step="0.1" 
+                               oninput="updateParamValue('${key}', this.value)">
+                        <span class="param-value" id="${key}-value">${param.default}</span>
+                    </div>
+                `;
+                paramsContainer.appendChild(paramDiv);
+            });
+            
+            // Initialize game config parameters
+            Object.entries(template.params).forEach(([key, param]) => {
+                gameConfig[key] = param.default; // Keep for compatibility if parts of UI use it directly
+                globalState.gameParameters[key] = param.default; // Store in globalState
+            });
+            
+            // Show game preview
+            document.getElementById('game-preview').classList.add('active');
+            initializeGamePreview();
+        }
+
+        function updateParamValue(param, value) {
+            document.getElementById(param + '-value').textContent = parseFloat(value).toFixed(1);
+            gameConfig[param] = parseFloat(value); // Keep for compatibility
+            globalState.gameParameters[param] = parseFloat(value); // Store in globalState
+            
+            // Update live preview if available
+            if (gameInstance && gameInstance.updateParam) {
+                gameInstance.updateParam(param, parseFloat(value));
+            }
+        }
+
+        function updateDifficulty() {
+            const difficulty = document.getElementById('difficulty').value;
+            if (!selectedTemplate || difficulty === 'custom') return;
+            
+            const template = gameTemplates[selectedTemplate];
+            const multipliers = {
+                easy: { gravity: 0.7, speed: 0.8, frequency: 0.6 },
+                medium: { gravity: 1.0, speed: 1.0, frequency: 1.0 },
+                hard: { gravity: 1.3, speed: 1.4, frequency: 1.5 }
+            };
+            
+            const mult = multipliers[difficulty];
+            
+            Object.entries(template.params).forEach(([key, param]) => {
+                let newValue = param.default;
+                
+                if (key.includes('speed') || key.includes('Speed')) newValue *= mult.speed;
+                if (key.includes('gravity') || key.includes('Gravity')) newValue *= mult.gravity;
+                if (key.includes('freq') || key.includes('Freq')) newValue *= mult.frequency;
+                
+                newValue = Math.max(param.min, Math.min(param.max, newValue));
+                
+                const slider = document.getElementById(key);
+                if (slider) {
+                    slider.value = newValue;
+                    updateParamValue(key, newValue);
+                }
+            });
+        }
+
+        function processAIPrompt() {
+            const prompt = document.getElementById('ai-prompt').value;
+            const bgmPrompt = document.getElementById('bgm-prompt')?.value || '';
+            const iapItems = [];
+            document.querySelectorAll('.iap-item-input').forEach(input => {
+                if (input.value.trim()) {
+                    iapItems.push(input.value.trim());
+                }
+            });
+
+            if (!prompt.trim() && !bgmPrompt.trim() && iapItems.length === 0) return;
+            
+            // Simulate AI processing
+            const suggestions = document.getElementById('ai-suggestions');
+            suggestions.innerHTML = `
+                <div class="ai-suggestion">
+                    <h4>🤖 AI Gameplay Analysis</h4>
+                    <p>Based on your request: "${prompt}"</p>
+                    <p>BGM Prompt: "${bgmPrompt || 'Not specified'}"</p>
+                    <p>IAP Items: ${iapItems.length > 0 ? iapItems.join(', ') : 'None'}</p>
+                    <p><strong>Suggested changes (simulated):</strong></p>
+                    <ul>
+                        <li>Adjusted game speed for better flow</li>
+                        <li>Modified difficulty curve</li>
+                        <li>Enhanced player feedback</li>
+                    </ul>
+                    <button class="btn" onclick="applyAISuggestions()">✅ Apply Gameplay Changes</button>
+                </div>
+            `;
+        }
+
+        function processAILogicPrompt() {
+            const logicPrompt = document.getElementById('ai-logic-prompt').value;
+            if (!logicPrompt.trim()) {
+                alert('Please enter a logic modification prompt.');
+                return;
+            }
+            globalState.aiLogicPrompt = logicPrompt; // Store it for export
+            
+            // Simulate AI analyzing the prompt and generating game ideas
+            const gameIdeas = generateGameIdeas(logicPrompt);
+            const suggestions = document.getElementById('ai-suggestions');
+            suggestions.innerHTML = `
+                <div class="ai-suggestion" style="background: linear-gradient(135deg, #e6f3ff 0%, #d0e7ff 100%); border-color: #007bff;">
+                    <h4>🧠 AI Game Logic Suggestions</h4>
+                    <p><strong>Based on your prompt:</strong> "${logicPrompt}"</p>
+                    <div style="margin: 15px 0;">
+                        <h5>Generated Game Ideas:</h5>
+                        <ul style="list-style-type: none; padding: 0;">
+                            ${gameIdeas.map(idea => `<li style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.5); border-radius: 8px;">${idea}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <button class="btn" onclick="applyGameIdeas()">✨ Apply Selected Ideas</button>
+                </div>
+            `;
+            updateExportSummary();
+        }
+
+        function generateGameIdeas(prompt) {
+            // Simulate AI generating game ideas based on the prompt
+            const baseIdeas = {
+                'flappy': [
+                    '🎯 Add power-ups that temporarily make the bird invincible',
+                    '🌈 Create color-matching pipes that give bonus points',
+                    '🎮 Implement different bird characters with unique abilities',
+                    '⚡ Add speed boost zones between pipes',
+                    '🎵 Sync obstacle patterns with background music'
+                ],
+                'runner': [
+                    '🦸‍♂️ Add special moves like double jump and slide',
+                    '🏃 Create dynamic obstacle patterns',
+                    '🎁 Include collectible power-ups',
+                    '🌍 Generate procedural environments',
+                    '🎯 Add bonus target zones'
+                ],
+                'match3': [
+                    '⚡ Add special combo pieces',
+                    '🎯 Create mission-based levels',
+                    '🔄 Include rotating board sections',
+                    '🎁 Add special power-up combinations',
+                    '🌟 Create chain reaction mechanics'
+                ],
+                'whack': [
+                    '🎯 Add different types of targets',
+                    '⚡ Include combo multipliers',
+                    '🎁 Create special bonus rounds',
+                    '⏱️ Add time-slowing power-ups',
+                    '🌟 Include target patterns to follow'
+                ],
+                'crossy': [
+                    '🦸‍♂️ Add character special abilities',
+                    '🌈 Create dynamic weather effects',
+                    '🎁 Include collectible companions',
+                    '⚡ Add speed lanes with rewards',
+                    '🎯 Create mission-based crossing'
+                ]
+            };
+
+            const template = selectedTemplate || 'flappy';
+            const ideas = baseIdeas[template] || baseIdeas['flappy'];
+            
+            // Analyze prompt for keywords and prioritize relevant ideas
+            const keywords = prompt.toLowerCase().split(' ');
+            const prioritizedIdeas = ideas.sort((a, b) => {
+                const aScore = keywords.reduce((score, keyword) => 
+                    score + (a.toLowerCase().includes(keyword) ? 1 : 0), 0);
+                const bScore = keywords.reduce((score, keyword) => 
+                    score + (b.toLowerCase().includes(keyword) ? 1 : 0), 0);
+                return bScore - aScore;
+            });
+
+            return prioritizedIdeas;
+        }
+
+        function applyGameIdeas() {
+            // Store the ideas in the game config for export
+            const ideas = document.querySelectorAll('.ai-suggestion li');
+            globalState.gameIdeas = Array.from(ideas).map(li => li.textContent);
+            
+            alert('🎮 Game ideas will be included in the exported game!\
+\nCheck the generated code comments for implementation suggestions.');
+            updateExportSummary();
+        }
+
+        function applyAISuggestions() {
+            // Simulate applying AI suggestions
+            updateDifficulty();
+            
+            const suggestions = document.getElementById('ai-suggestions');
+            suggestions.innerHTML = `
+                <div class="ai-suggestion" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
+                    <h4>✅ Changes Applied</h4>
+                    <p>Your game has been optimized based on AI analysis!</p>
+                </div>
+            `;
+        }
+
+        let previewGameInstance = null;
+        function initializeGamePreview() {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#87CEEB'; // Light blue background
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#333';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+
+            if (!selectedTemplate || !gameTemplates[selectedTemplate]) {
+                ctx.fillText('Select a template to see a preview.', canvas.width/2, canvas.height/2);
+                return;
+            }
+
+            ctx.fillText(`${gameTemplates[selectedTemplate].name} Preview`, canvas.width/2, 50);
+
+            // Simplified preview drawing based on template
+            if (selectedTemplate === 'flappy') {
+                ctx.fillStyle = 'yellow'; // Bird
+                ctx.fillRect(canvas.width/4, canvas.height/2 - 15, 30, 30);
+                ctx.fillStyle = 'green'; // Pipe
+                ctx.fillRect(canvas.width * 0.6, canvas.height/2, 50, canvas.height/2);
+                ctx.fillRect(canvas.width * 0.6, 0, 50, canvas.height/3);
+            } else if (selectedTemplate === 'runner') {
+                ctx.fillStyle = 'blue'; // Runner
+                ctx.fillRect(canvas.width/4, canvas.height - 70, 30, 50);
+                ctx.fillStyle = 'red'; // Obstacle
+                ctx.fillRect(canvas.width * 0.7, canvas.height - 50, 20, 30);
+            } else if (selectedTemplate === 'whack') {
+                ctx.fillStyle = 'brown'; // Mole hole
+                ctx.beginPath();
+                ctx.arc(canvas.width/2, canvas.height/2, 30, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'grey'; // Mole (partially visible)
+                ctx.beginPath();
+                ctx.arc(canvas.width/2, canvas.height/2 - 10, 20, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (selectedTemplate === 'match3') {
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        ctx.fillStyle = ['red', 'green', 'blue'][(i+j)%3];
+                        ctx.fillRect(canvas.width/2 - 45 + i * 30, canvas.height/2 - 45 + j * 30, 25, 25);
+                    }
+                }
+            } else if (selectedTemplate === 'crossy') {
+                ctx.fillStyle = 'purple'; // Character
+                ctx.fillRect(canvas.width/2 -15, canvas.height - 50, 30, 30);
+                ctx.fillStyle = 'gray'; // Road
+                ctx.fillRect(0, canvas.height - 150, canvas.width, 100);
+                ctx.fillStyle = 'yellow'; // Car
+                ctx.fillRect(canvas.width * 0.2, canvas.height - 120, 40, 20);
+            } else {
+                ctx.fillText('Preview not available for this template yet.', canvas.width/2, canvas.height/2);
+            }
+            ctx.fillStyle = '#333';
+            ctx.fillText('Click "Test Play" for a simple interaction.', canvas.width/2, canvas.height - 30);
+        }
+
+        function simplePreviewAnimation(type) {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            let x = canvas.width/4;
+            let y = canvas.height/2 - 15;
+            let obstacleX = canvas.width * 0.7;
+            let frame = 0;
+            let lastTime = 0;
+            
+            // Clear any existing animation
+            if (previewGameInstance) {
+                clearInterval(previewGameInstance);
+                previewGameInstance = null;
+            }
+            
+            // Clear any existing animation frame
+            if (window.previewAnimationFrame) {
+                cancelAnimationFrame(window.previewAnimationFrame);
+                window.previewAnimationFrame = null;
+            }
+
+            // Animation function using requestAnimationFrame
+            function animate(timestamp) {
+                // Control animation speed
+                if (!lastTime || timestamp - lastTime >= 30) { // ~33 FPS
+                    lastTime = timestamp;
+                    
+                    initializeGamePreview(); // Redraw static parts
+                    ctx.fillStyle = '#333';
+                    ctx.font = '18px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Test animation running...', canvas.width/2, canvas.height - 60);
+
+                    if (type === 'flappy') {
+                        ctx.fillStyle = 'yellow'; // Bird
+                        y += Math.sin(frame * 0.1) * 2; // Simple bobbing
+                        ctx.fillRect(x, y, 30, 30);
+                    } else if (type === 'runner') {
+                        ctx.fillStyle = 'blue'; // Runner
+                        x = (x + 2) % (canvas.width / 2); // Simple running
+                        ctx.fillRect(x, canvas.height - 70, 30, 50);
+                        ctx.fillStyle = 'red'; // Obstacle
+                        obstacleX -= 1;
+                        if(obstacleX < -20) obstacleX = canvas.width * 0.7;
+                        ctx.fillRect(obstacleX, canvas.height - 50, 20, 30);
+                    } else if (type === 'match3') {
+                        // Simple match-3 animation
+                        for (let i = 0; i < 3; i++) {
+                            for (let j = 0; j < 3; j++) {
+                                const colorIndex = (i + j + Math.floor(frame/10)) % 3;
+                                ctx.fillStyle = ['red', 'green', 'blue'][colorIndex];
+                                ctx.fillRect(canvas.width/2 - 45 + i * 30, canvas.height/2 - 45 + j * 30, 25, 25);
+                            }
+                        }
+                    } else if (type === 'whack') {
+                        // Simple whack-a-mole animation
+                        ctx.fillStyle = 'brown'; // Mole hole
+                        ctx.beginPath();
+                        ctx.arc(canvas.width/2, canvas.height/2, 30, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Mole pops up and down
+                        const moleHeight = Math.sin(frame * 0.1) * 15;
+                        if (moleHeight > 0) {
+                            ctx.fillStyle = 'grey';
+                            ctx.beginPath();
+                            ctx.arc(canvas.width/2, canvas.height/2 - moleHeight, 20, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else if (type === 'crossy') {
+                        // Simple crossy road animation
+                        ctx.fillStyle = 'gray'; // Road
+                        ctx.fillRect(0, canvas.height - 150, canvas.width, 100);
+                        
+                        // Moving car
+                        ctx.fillStyle = 'yellow';
+                        const carX = (canvas.width + 40 - (frame * 3) % (canvas.width + 80)) - 40;
+                        ctx.fillRect(carX, canvas.height - 120, 40, 20);
+                        
+                        // Character
+                        ctx.fillStyle = 'purple';
+                        ctx.fillRect(canvas.width/2 - 15, canvas.height - 50, 30, 30);
+                    }
+                    
+                    frame++;
+                }
+                
+                // Continue animation loop
+                window.previewAnimationFrame = requestAnimationFrame(animate);
+            }
+            
+            // Start the animation loop
+            window.previewAnimationFrame = requestAnimationFrame(animate);
+        }
+
+        function testGame() {
+            if (!selectedTemplate) {
+                alert('Please select a game template first!');
+                return;
+            }
+            
+            // Clear any existing animation
+            if (previewGameInstance) {
+                clearInterval(previewGameInstance);
+                previewGameInstance = null;
+            }
+            
+            // If there's an animation frame running, cancel it
+            if (window.previewAnimationFrame) {
+                cancelAnimationFrame(window.previewAnimationFrame);
+                window.previewAnimationFrame = null;
+            }
+            
+            alert(`🎮 Simulating Test Play for ${gameTemplates[selectedTemplate].name}!\n\n- Theme: ${generatedAssets.theme || 'Default'}\n- Difficulty: ${document.getElementById('difficulty').value}\n- Parameters: ${JSON.stringify(globalState.gameParameters)}\n\nA simple animation will run in the preview canvas.`);
+            simplePreviewAnimation(selectedTemplate);
+        }
+
+        function resetGame() {
+            // Clear any interval-based animation
+            if (previewGameInstance) {
+                clearInterval(previewGameInstance);
+                previewGameInstance = null;
+            }
+            
+            // Clear any requestAnimationFrame-based animation
+            if (window.previewAnimationFrame) {
+                cancelAnimationFrame(window.previewAnimationFrame);
+                window.previewAnimationFrame = null;
+            }
+            
+            if (selectedTemplate) {
+                generateGameParameters(); // This also calls initializeGamePreview
+            } else {
+                initializeGamePreview(); // Clear preview if no template
+            }
+            document.getElementById('ai-suggestions').innerHTML = ''; // Clear AI suggestions too
+        }
+
+        function updateExportSummary() {
+            document.getElementById('export-template').textContent = gameConfig.templateName || 'None selected';
+            document.getElementById('export-theme').textContent = generatedAssets.theme || 'Default';
+            document.getElementById('export-difficulty').textContent = document.getElementById('difficulty')?.value || 'Medium';
+            document.getElementById('export-art').textContent = generatedAssets.artStyle || 'Default';
+        }
+
+        function exportGame() {
+            const gameTitle = document.getElementById('game-title').value || 'My Game';
+            const exportFormat = document.getElementById('export-format').value;
+            
+            const loadingDiv = document.getElementById('loading-export');
+            loadingDiv.classList.add('active');
+            
+            const steps = [
+                "Compiling game assets...",
+                "Generating HTML5 code...",
+                "Optimizing for mobile...",
+                "Creating game package...",
+                "Finalizing export..."
+            ];
+            
+            let progress = 0;
+            let stepIndex = 0;
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 20 + 5;
+                if (progress > 100) progress = 100;
+                
+                document.getElementById('export-progress').style.width = progress + '%';
+                
+                if (stepIndex < steps.length - 1 && progress > (stepIndex + 1) * 20) {
+                    stepIndex++;
+                }
+                document.getElementById('export-status').textContent = steps[stepIndex];
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loadingDiv.classList.remove('active');
+                        downloadGame(gameTitle, exportFormat);
+                    }, 1000);
+                }
+            }, 300);
+        }
+
+        function downloadGame(title, format) {
+            const gameHTML = generateGameHTML(title);
+            const zip = new JSZip();
+            zip.file("index.html", gameHTML);
+            // In a real scenario, you would add actual asset files here
+            // For example: zip.file("assets/character.png", generatedAssets.characterData); // Placeholder for actual asset data
+            // zip.file("assets/bgm.mp3", generatedAssets.bgmData); // Placeholder for actual BGM data
+
+            zip.generateAsync({ type: "blob" })
+                .then(function(content) {
+                    const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_');
+                    const fileName = `${safeTitle}_${format}.zip`;
+                    const url = URL.createObjectURL(content);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    alert(`🎉 Game exported successfully!\n\nYour ${title} is ready to play!\n\nFormat: ${format}\nFile: ${fileName}`);
+                })
+                .catch(function (err) {
+                    console.error("Failed to create zip file:", err);
+                    alert("Error exporting game. Please check console for details.");
+                });
+        }
+
+        function generateGameHTML(title) {
+            const mobileControlsEnabled = document.getElementById('mobile-controls-toggle') ? document.getElementById('mobile-controls-toggle').checked : true;
+            const aiLogicComment = globalState.aiLogicPrompt ? `<!-- AI Logic Prompt: ${globalState.aiLogicPrompt.replace(/</g, '&lt;').replace(/>/g, '&gt;')} -->\n` : '';
+
+            let gameLogicScript = `
+        // Default Game Logic (Placeholder)
+        let score = 0;
+        function displayInitialMessage() {
+            ctx.fillStyle = '#87CEEB'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#333'; ctx.font = '20px Arial'; ctx.textAlign = 'center';
+            ctx.fillText('${title}', canvas.width/2, canvas.height/2 - 60);
+            ctx.fillText('Theme: ${generatedAssets.theme || 'Default'}', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Selected Template: ' + templateName, canvas.width/2, canvas.height/2);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('Press Start or Tap Action', canvas.width/2, canvas.height/2 + 60);
+        }
+        function gameLoop() { displayInitialMessage(); console.log('Generic game loop'); }
+        function startGameLogic() { score = 0; console.log('Generic game started'); gameLoop(); }
+        function resetGameLogic() { score = 0; console.log('Generic game reset'); displayInitialMessage(); }
+        function handlePlayerAction() { console.log('Generic player action'); score +=10; }
+        function handleCanvasTap(x,y) { console.log('Generic canvas tap at', x, y); score += 5; }
+            `;
+
+            // Inject template-specific basic game logic
+            if (globalState.selectedTemplate === 'flappy') {
+                gameLogicScript = `
+        // Flappy Bird Basic Logic
+        let bird;
+        let pipes;
+        let score;
+        let gameSpeed;
+        let gravity;
+        let jumpPower;
+        let pipeGap;
+        let pipeWidth;
+        let pipeSpawnTimer;
+        let gameRunning;
+        let animationFrameId;
+        
+        function initGameVariables() {
+            bird = { x: 50, y: canvas.height / 2, width: 20, height: 20, velocity: 0 };
+            pipes = [];
+            score = 0;
+            gameSpeed = config.gameSpeed || 2;
+            gravity = config.gravity || 0.5;
+            jumpPower = config.jumpPower || 9;
+            pipeGap = config.pipeGap || 120;
+            pipeWidth = 50;
+            pipeSpawnTimer = 0;
+            gameRunning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        function drawBird() { ctx.fillStyle = 'yellow'; ctx.fillRect(bird.x, bird.y, bird.width, bird.height); }
+        function drawPipes() {
+            ctx.fillStyle = 'green';
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, 0, pipe.width, pipe.topHeight);
+                ctx.fillRect(pipe.x, pipe.topHeight + pipe.gap, pipe.width, canvas.height - (pipe.topHeight + pipe.gap));
+            });
+        }
+        function updateBird() {
+            bird.velocity += gravity;
+            bird.y += bird.velocity;
+            if (bird.y + bird.height > canvas.height || bird.y < 0) { gameOver(); }
+        }
+        function updatePipes() {
+            // Increment spawn timer and adjust based on gameSpeed for consistent gameplay
+            pipeSpawnTimer++;
+            const spawnInterval = 150 / gameSpeed; // Adjust spawn rate based on game speed
+            
+            if (pipeSpawnTimer > spawnInterval) {
+                const topHeight = Math.random() * (canvas.height - pipeGap - 50) + 25;
+                pipes.push({ x: canvas.width, topHeight: topHeight, gap: pipeGap, width: pipeWidth, scored: false });
+                pipeSpawnTimer = 0;
+            }
+            pipes.forEach(pipe => {
+                pipe.x -= gameSpeed;
+                if (pipe.x + pipe.width < bird.x && !pipe.scored) { score++; pipe.scored = true; }
+                if (bird.x < pipe.x + pipe.width && bird.x + bird.width > pipe.x && 
+                    (bird.y < pipe.topHeight || bird.y + bird.height > pipe.topHeight + pipe.gap)) {
+                    gameOver();
+                }
+            });
+            pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
+        }
+        function gameLoop() {
+            if (!gameRunning) return;
+            ctx.fillStyle = '#87CEEB'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            updateBird(); updatePipes();
+            drawBird(); drawPipes();
+            ctx.fillStyle = 'black'; ctx.font = '20px Arial'; ctx.fillText('Score: ' + score, 10, 25);
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        function startGameLogic() {
+            initGameVariables();
+            gameRunning = true;
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        function resetGameLogic() { 
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            gameRunning = false; 
+            initGameVariables();
+            displayInitialMessage(); 
+        }
+        function handlePlayerAction() { if(gameRunning) bird.velocity = -jumpPower; else startGameLogic(); }
+        function handleCanvasTap(x,y) { handlePlayerAction(); }
+        function gameOver() { 
+            gameRunning = false; 
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over!', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Restart', canvas.width/2, canvas.height/2 + 30);
+        }
+        function displayInitialMessage() {
+            ctx.fillStyle = '#87CEEB'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#333'; ctx.font = '20px Arial'; ctx.textAlign = 'center';
+            ctx.fillText('${title}', canvas.width/2, canvas.height/2 - 60);
+            ctx.fillText('Flappy Bird Clone', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Jump/Start', canvas.width/2, canvas.height/2 + 30);
+        }
+                `;
+            } else if (globalState.selectedTemplate === 'runner') {
+                gameLogicScript = `
+        // Speed Runner Basic Logic
+        let player;
+        let obstacles;
+        let score;
+        let gameSpeed;
+        let jumpPower;
+        let gravity;
+        let isJumping;
+        let gameRunning;
+        let animationFrameId;
+        let ground;
+        
+        function initGameVariables() {
+            player = { x: 50, y: 0, width: 30, height: 50, velocity: 0 };
+            obstacles = [];
+            score = 0;
+            gameSpeed = config.gameSpeed || 5;
+            jumpPower = config.jumpPower || 15;
+            gravity = config.gravity || 0.8;
+            isJumping = false;
+            gameRunning = false;
+            ground = canvas.height - 50;
+            player.y = ground - player.height;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        }
+        
+        function drawPlayer() {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+        
+        function drawObstacles() {
+            ctx.fillStyle = 'red';
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+        
+        function drawGround() {
+            ctx.fillStyle = 'green';
+            ctx.fillRect(0, ground, canvas.width, canvas.height - ground);
+        }
+        
+        function updatePlayer() {
+            // Apply gravity
+            player.velocity += gravity;
+            player.y += player.velocity;
+            
+            // Check ground collision
+            if (player.y + player.height > ground) {
+                player.y = ground - player.height;
+                player.velocity = 0;
+                isJumping = false;
+            }
+        }
+        
+        function updateObstacles() {
+            // Generate new obstacles
+            if (Math.random() < 0.02 * (gameSpeed / 5)) {
+                const height = Math.random() * 30 + 20;
+                obstacles.push({
+                    x: canvas.width,
+                    y: ground - height,
+                    width: 20,
+                    height: height
+                });
+            }
+            
+            // Move obstacles and check collisions
+            obstacles.forEach(obstacle => {
+                obstacle.x -= gameSpeed;
+                
+                // Check collision
+                if (player.x < obstacle.x + obstacle.width &&
+                    player.x + player.width > obstacle.x &&
+                    player.y < obstacle.y + obstacle.height &&
+                    player.y + player.height > obstacle.y) {
+                    gameOver();
+                }
+                
+                // Increase score when passing obstacle
+                if (obstacle.x + obstacle.width < player.x && !obstacle.passed) {
+                    score++;
+                    obstacle.passed = true;
+                }
+            });
+            
+            // Remove off-screen obstacles
+            obstacles = obstacles.filter(obstacle => obstacle.x + obstacle.width > 0);
+            
+            // Increase game speed over time
+            if (score > 0 && score % 5 === 0 && !obstacles[obstacles.length - 1]?.speedIncreased) {
+                gameSpeed += 0.2;
+                if (obstacles.length > 0) {
+                    obstacles[obstacles.length - 1].speedIncreased = true;
+                }
+            }
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            updatePlayer();
+            updateObstacles();
+            
+            drawGround();
+            drawPlayer();
+            drawObstacles();
+            
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText('Score: ' + score, 10, 25);
+            
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function startGameLogic() {
+            initGameVariables();
+            gameRunning = true;
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function resetGameLogic() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            gameRunning = false;
+            initGameVariables();
+            displayInitialMessage();
+        }
+        
+        function handlePlayerAction() {
+            if (!gameRunning) {
+                startGameLogic();
+                return;
+            }
+            
+            if (!isJumping) {
+                player.velocity = -jumpPower;
+                isJumping = true;
+            }
+        }
+        
+        function handleCanvasTap(x, y) {
+            handlePlayerAction();
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over!', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Restart', canvas.width/2, canvas.height/2 + 30);
+        }
+        
+        function displayInitialMessage() {
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#333';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('${title}', canvas.width/2, canvas.height/2 - 60);
+            ctx.fillText('Speed Runner', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Jump/Start', canvas.width/2, canvas.height/2 + 30);
+        }
+                `;
+            } else if (globalState.selectedTemplate === 'match3') {
+                gameLogicScript = `
+        // Match-3 Basic Logic
+        let grid;
+        let gridSize;
+        let tileSize;
+        let selectedTile;
+        let score;
+        let gameRunning;
+        let animationFrameId;
+        let colors;
+        
+        function initGameVariables() {
+            gridSize = config.gridSize || 6;
+            tileSize = Math.min(canvas.width, canvas.height) / gridSize;
+            grid = [];
+            score = 0;
+            selectedTile = null;
+            gameRunning = false;
+            colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+            
+            // Initialize grid
+            for (let i = 0; i < gridSize; i++) {
+                grid[i] = [];
+                for (let j = 0; j < gridSize; j++) {
+                    grid[i][j] = {
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        x: i,
+                        y: j
+                    };
+                }
+            }
+            
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        }
+        
+        function drawGrid() {
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const tile = grid[i][j];
+                    ctx.fillStyle = tile.color;
+                    ctx.fillRect(i * tileSize, j * tileSize, tileSize - 2, tileSize - 2);
+                    
+                    // Highlight selected tile
+                    if (selectedTile && selectedTile.x === i && selectedTile.y === j) {
+                        ctx.strokeStyle = 'white';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(i * tileSize + 2, j * tileSize + 2, tileSize - 6, tileSize - 6);
+                    }
+                }
+            }
+        }
+        
+        function checkMatches() {
+            let matched = false;
+            
+            // Check horizontal matches
+            for (let j = 0; j < gridSize; j++) {
+                let matchCount = 1;
+                let matchColor = grid[0][j].color;
+                
+                for (let i = 1; i < gridSize; i++) {
+                    if (grid[i][j].color === matchColor) {
+                        matchCount++;
+                    } else {
+                        if (matchCount >= 3) {
+                            // Remove matched tiles
+                            for (let k = i - matchCount; k < i; k++) {
+                                grid[k][j].color = 'transparent';
+                            }
+                            score += matchCount * 10;
+                            matched = true;
+                        }
+                        matchCount = 1;
+                        matchColor = grid[i][j].color;
+                    }
+                }
+                
+                // Check match at the end of row
+                if (matchCount >= 3) {
+                    for (let k = gridSize - matchCount; k < gridSize; k++) {
+                        grid[k][j].color = 'transparent';
+                    }
+                    score += matchCount * 10;
+                    matched = true;
+                }
+            }
+            
+            // Check vertical matches
+            for (let i = 0; i < gridSize; i++) {
+                let matchCount = 1;
+                let matchColor = grid[i][0].color;
+                
+                for (let j = 1; j < gridSize; j++) {
+                    if (grid[i][j].color === matchColor) {
+                        matchCount++;
+                    } else {
+                        if (matchCount >= 3) {
+                            // Remove matched tiles
+                            for (let k = j - matchCount; k < j; k++) {
+                                grid[i][k].color = 'transparent';
+                            }
+                            score += matchCount * 10;
+                            matched = true;
+                        }
+                        matchCount = 1;
+                        matchColor = grid[i][j].color;
+                    }
+                }
+                
+                // Check match at the end of column
+                if (matchCount >= 3) {
+                    for (let k = gridSize - matchCount; k < gridSize; k++) {
+                        grid[i][k].color = 'transparent';
+                    }
+                    score += matchCount * 10;
+                    matched = true;
+                }
+            }
+            
+            return matched;
+        }
+        
+        function fillEmptyTiles() {
+            let filled = false;
+            
+            // Move tiles down
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = gridSize - 2; j >= 0; j--) {
+                    if (grid[i][j + 1].color === 'transparent') {
+                        grid[i][j + 1].color = grid[i][j].color;
+                        grid[i][j].color = 'transparent';
+                        filled = true;
+                    }
+                }
+                
+                // Fill empty tiles at the top
+                for (let j = 0; j < gridSize; j++) {
+                    if (grid[i][j].color === 'transparent') {
+                        grid[i][j].color = colors[Math.floor(Math.random() * colors.length)];
+                        filled = true;
+                    }
+                }
+            }
+            
+            return filled;
+        }
+        
+        function swapTiles(tile1, tile2) {
+            const temp = grid[tile1.x][tile1.y].color;
+            grid[tile1.x][tile1.y].color = grid[tile2.x][tile2.y].color;
+            grid[tile2.x][tile2.y].color = temp;
+        }
+        
+        function isAdjacent(tile1, tile2) {
+            return (Math.abs(tile1.x - tile2.x) === 1 && tile1.y === tile2.y) ||
+                   (Math.abs(tile1.y - tile2.y) === 1 && tile1.x === tile2.x);
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawGrid();
+            
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText('Score: ' + score, 10, 25);
+            
+            // Check for matches and fill empty tiles
+            if (checkMatches()) {
+                setTimeout(() => {
+                    fillEmptyTiles();
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                }, 300);
+            } else {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        function startGameLogic() {
+            initGameVariables();
+            gameRunning = true;
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function resetGameLogic() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            gameRunning = false;
+            initGameVariables();
+            displayInitialMessage();
+        }
+        
+        function handleCanvasTap(x, y) {
+            if (!gameRunning) {
+                startGameLogic();
+                return;
+            }
+            
+            const tileX = Math.floor(x / tileSize);
+            const tileY = Math.floor(y / tileSize);
+            
+            if (tileX >= 0 && tileX < gridSize && tileY >= 0 && tileY < gridSize) {
+                if (!selectedTile) {
+                    selectedTile = { x: tileX, y: tileY };
+                } else {
+                    const newTile = { x: tileX, y: tileY };
+                    
+                    if (isAdjacent(selectedTile, newTile)) {
+                        swapTiles(selectedTile, newTile);
+                        
+                        // Check if the swap created a match
+                        if (!checkMatches()) {
+                            // If no match, swap back
+                            swapTiles(selectedTile, newTile);
+                        } else {
+                            fillEmptyTiles();
+                        }
+                    }
+                    
+                    selectedTile = null;
+                }
+            }
+        }
+        
+        function handlePlayerAction() {
+            if (!gameRunning) startGameLogic();
+        }
+        
+        function gameOver() {
+            // Match-3 games typically don't have a game over condition
+            // but we could implement one based on moves or time limit
+        }
+        
+        function displayInitialMessage() {
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#333';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('${title}', canvas.width/2, canvas.height/2 - 60);
+            ctx.fillText('Match-3 Game', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Start', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('Match 3 or more tiles to score points', canvas.width/2, canvas.height/2 + 60);
+        }
+                `;
+            } else if (globalState.selectedTemplate === 'whack') {
+                gameLogicScript = `
+        // Whack-a-Mole Basic Logic
+        let holes;
+        let moles;
+        let score;
+        let timeLeft;
+        let gameRunning;
+        let animationFrameId;
+        let lastTime;
+        let spawnRate;
+        
+        function initGameVariables() {
+            const rows = 3;
+            const cols = 3;
+            const holeSize = Math.min(canvas.width / cols, canvas.height / rows) * 0.8;
+            const holeSpacing = Math.min(canvas.width / cols, canvas.height / rows);
+            
+            holes = [];
+            moles = [];
+            score = 0;
+            timeLeft = config.gameTime || 30; // Game time in seconds
+            gameRunning = false;
+            lastTime = 0;
+            spawnRate = config.spawnRate || 1500; // Time between mole spawns in ms
+            
+            // Create holes grid
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    holes.push({
+                        x: j * holeSpacing + holeSpacing / 2,
+                        y: i * holeSpacing + holeSpacing / 2,
+                        radius: holeSize / 2
+                    });
+                }
+            }
+            
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        }
+        
+        function drawHoles() {
+            holes.forEach(hole => {
+                ctx.fillStyle = 'brown';
+                ctx.beginPath();
+                ctx.arc(hole.x, hole.y, hole.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        function drawMoles() {
+            moles.forEach(mole => {
+                const hole = holes[mole.holeIndex];
+                
+                // Draw mole
+                ctx.fillStyle = 'gray';
+                ctx.beginPath();
+                ctx.arc(hole.x, hole.y, hole.radius * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw mole face
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(hole.x - hole.radius * 0.3, hole.y - hole.radius * 0.2, hole.radius * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(hole.x + hole.radius * 0.3, hole.y - hole.radius * 0.2, hole.radius * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw mouth
+                ctx.beginPath();
+                ctx.arc(hole.x, hole.y + hole.radius * 0.1, hole.radius * 0.3, 0, Math.PI);
+                ctx.stroke();
+            });
+        }
+        
+        function spawnMole() {
+            if (!gameRunning) return;
+            
+            // Find holes without moles
+            const availableHoles = [];
+            for (let i = 0; i < holes.length; i++) {
+                if (!moles.some(mole => mole.holeIndex === i)) {
+                    availableHoles.push(i);
+                }
+            }
+            
+            if (availableHoles.length > 0) {
+                const randomHoleIndex = availableHoles[Math.floor(Math.random() * availableHoles.length)];
+                const stayUpTime = Math.random() * 1000 + 1000; // Random time between 1-2 seconds
+                
+                moles.push({
+                    holeIndex: randomHoleIndex,
+                    timeLeft: stayUpTime
+                });
+            }
+            
+            // Schedule next spawn
+            setTimeout(spawnMole, spawnRate);
+        }
+        
+        function updateMoles(deltaTime) {
+            moles.forEach(mole => {
+                mole.timeLeft -= deltaTime;
+            });
+            
+            // Remove moles that have been up too long
+            moles = moles.filter(mole => mole.timeLeft > 0);
+        }
+        
+        function updateTimer(deltaTime) {
+            timeLeft -= deltaTime / 1000; // Convert ms to seconds
+            
+            if (timeLeft <= 0) {
+                timeLeft = 0;
+                gameOver();
+            }
+        }
+        
+        function gameLoop(timestamp) {
+            if (!gameRunning) return;
+            
+            // Calculate delta time
+            const deltaTime = lastTime ? timestamp - lastTime : 0;
+            lastTime = timestamp;
+            
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw game elements
+            drawHoles();
+            drawMoles();
+            
+            // Update game state
+            updateMoles(deltaTime);
+            updateTimer(deltaTime);
+            
+            // Draw UI
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Score: ' + score, 10, 25);
+            ctx.textAlign = 'right';
+            ctx.fillText('Time: ' + Math.ceil(timeLeft) + 's', canvas.width - 10, 25);
+            
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function startGameLogic() {
+            initGameVariables();
+            gameRunning = true;
+            lastTime = 0;
+            spawnMole(); // Start spawning moles
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function resetGameLogic() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            gameRunning = false;
+            initGameVariables();
+            displayInitialMessage();
+        }
+        
+        function handleCanvasTap(x, y) {
+            if (!gameRunning) {
+                startGameLogic();
+                return;
+            }
+            
+            // Check if tap hit a mole
+            for (let i = moles.length - 1; i >= 0; i--) {
+                const mole = moles[i];
+                const hole = holes[mole.holeIndex];
+                
+                const distance = Math.sqrt(Math.pow(x - hole.x, 2) + Math.pow(y - hole.y, 2));
+                
+                if (distance <= hole.radius) {
+                    // Hit a mole!
+                    moles.splice(i, 1);
+                    score += 10;
+                    break;
+                }
+            }
+        }
+        
+        function handlePlayerAction() {
+            if (!gameRunning) startGameLogic();
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over!', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Restart', canvas.width/2, canvas.height/2 + 30);
+        }
+        
+        function displayInitialMessage() {
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#333';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('${title}', canvas.width/2, canvas.height/2 - 60);
+            ctx.fillText('Whack-a-Mole', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Start', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('Tap on moles to whack them!', canvas.width/2, canvas.height/2 + 60);
+        }
+                `;
+            } else if (globalState.selectedTemplate === 'crossy') {
+                gameLogicScript = `
+        // Crossy Road Basic Logic
+        let player;
+        let lanes;
+        let score;
+        let gameRunning;
+        let animationFrameId;
+        let moveDistance;
+        let laneHeight;
+        let vehicleSpeed;
+        
+        function initGameVariables() {
+            moveDistance = 40;
+            laneHeight = 40;
+            vehicleSpeed = config.vehicleSpeed || 2;
+            
+            player = {
+                x: canvas.width / 2,
+                y: canvas.height - laneHeight / 2,
+                width: 30,
+                height: 30
+            };
+            
+            lanes = [];
+            score = 0;
+            gameRunning = false;
+            
+            // Create lanes
+            const numLanes = Math.floor(canvas.height / laneHeight);
+            for (let i = 0; i < numLanes; i++) {
+                const laneType = i === numLanes - 1 ? 'safe' : 
+                                (i === 0 ? 'goal' : 
+                                (Math.random() < 0.7 ? 'road' : 'safe'));
+                
+                const lane = {
+                    y: i * laneHeight,
+                    type: laneType,
+                    vehicles: []
+                };
+                
+                if (laneType === 'road') {
+                    const direction = Math.random() < 0.5 ? 1 : -1;
+                    const speed = (Math.random() * 2 + 1) * vehicleSpeed * direction;
+                    
+                    lane.direction = direction;
+                    lane.speed = speed;
+                    
+                    // Add initial vehicles
+                    const numVehicles = Math.floor(Math.random() * 2) + 1;
+                    for (let j = 0; j < numVehicles; j++) {
+                        const vehicleWidth = Math.random() * 50 + 50;
+                        const x = direction > 0 ? 
+                                 -vehicleWidth - Math.random() * canvas.width : 
+                                 canvas.width + Math.random() * canvas.width;
+                        
+                        lane.vehicles.push({
+                            x: x,
+                            width: vehicleWidth,
+                            height: laneHeight * 0.8
+                        });
+                    }
+                }
+                
+                lanes.push(lane);
+            }
+            
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        }
+        
+        function drawPlayer() {
+            ctx.fillStyle = 'purple';
+            ctx.fillRect(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
+        }
+        
+        function drawLanes() {
+            lanes.forEach(lane => {
+                if (lane.type === 'road') {
+                    ctx.fillStyle = '#555'; // Road color
+                } else if (lane.type === 'safe') {
+                    ctx.fillStyle = '#8BC34A'; // Grass color
+                } else if (lane.type === 'goal') {
+                    ctx.fillStyle = '#2196F3'; // Goal color
+                }
+                
+                ctx.fillRect(0, lane.y, canvas.width, laneHeight);
+                
+                // Draw lane markings for roads
+                if (lane.type === 'road') {
+                    ctx.strokeStyle = 'white';
+                    ctx.setLineDash([20, 20]);
+                    ctx.beginPath();
+                    ctx.moveTo(0, lane.y + laneHeight / 2);
+                    ctx.lineTo(canvas.width, lane.y + laneHeight / 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Draw vehicles
+                    lane.vehicles.forEach(vehicle => {
+                        ctx.fillStyle = 'red';
+                        ctx.fillRect(vehicle.x, lane.y + (laneHeight - vehicle.height) / 2, vehicle.width, vehicle.height);
+                    });
+                }
+            });
+        }
+        
+        function updateVehicles() {
+            lanes.forEach(lane => {
+                if (lane.type === 'road') {
+                    lane.vehicles.forEach(vehicle => {
+                        vehicle.x += lane.speed;
+                        
+                        // Wrap vehicles around
+                        if ((lane.direction > 0 && vehicle.x > canvas.width) ||
+                            (lane.direction < 0 && vehicle.x + vehicle.width < 0)) {
+                            if (lane.direction > 0) {
+                                vehicle.x = -vehicle.width;
+                            } else {
+                                vehicle.x = canvas.width;
+                            }
+                        }
+                        
+                        // Check collision with player
+                        if (player.x + player.width / 2 > vehicle.x &&
+                            player.x - player.width / 2 < vehicle.x + vehicle.width &&
+                            player.y + player.height / 2 > lane.y + (laneHeight - vehicle.height) / 2 &&
+                            player.y - player.height / 2 < lane.y + (laneHeight - vehicle.height) / 2 + vehicle.height) {
+                            gameOver();
+                        }
+                    });
+                    
+                    // Randomly add new vehicles
+                    if (Math.random() < 0.005) {
+                        const vehicleWidth = Math.random() * 50 + 50;
+                        const x = lane.direction > 0 ? -vehicleWidth : canvas.width;
+                        
+                        lane.vehicles.push({
+                            x: x,
+                            width: vehicleWidth,
+                            height: laneHeight * 0.8
+                        });
+                    }
+                }
+            });
+        }
+        
+        function movePlayer(direction) {
+            if (!gameRunning) return;
+            
+            switch (direction) {
+                case 'up':
+                    player.y -= moveDistance;
+                    break;
+                case 'down':
+                    player.y += moveDistance;
+                    break;
+                case 'left':
+                    player.x -= moveDistance;
+                    break;
+                case 'right':
+                    player.x += moveDistance;
+                    break;
+            }
+            
+            // Keep player within bounds
+            player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
+            player.y = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, player.y));
+            
+            // Check if player reached the goal
+            if (player.y - player.height / 2 <= laneHeight) {
+                score++;
+                player.y = canvas.height - laneHeight / 2;
+                
+                // Increase difficulty
+                vehicleSpeed += 0.2;
+                lanes.forEach(lane => {
+                    if (lane.type === 'road') {
+                        lane.speed = (Math.abs(lane.speed) + 0.2) * (lane.direction > 0 ? 1 : -1);
+                    }
+                });
+            }
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawLanes();
+            updateVehicles();
+            drawPlayer();
+            
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Score: ' + score, 10, 25);
+            
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function startGameLogic() {
+            initGameVariables();
+            gameRunning = true;
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function resetGameLogic() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            gameRunning = false;
+            initGameVariables();
+            displayInitialMessage();
+        }
+        
+        function handleCanvasTap(x, y) {
+            if (!gameRunning) {
+                startGameLogic();
+                return;
+            }
+            
+            // Determine direction based on tap position relative to player
+            const dx = x - player.x;
+            const dy = y - player.y;
+            
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Horizontal movement
+                movePlayer(dx > 0 ? 'right' : 'left');
+            } else {
+                // Vertical movement
+                movePlayer(dy > 0 ? 'down' : 'up');
+            }
+        }
+        
+        function handlePlayerAction() {
+            if (!gameRunning) startGameLogic();
+            else movePlayer('up'); // Default action is to move up
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over!', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Restart', canvas.width/2, canvas.height/2 + 30);
+        }
+        
+        function displayInitialMessage() {
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#333';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('${title}', canvas.width/2, canvas.height/2 - 60);
+            ctx.fillText('Crossy Road', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('Click/Tap to Start', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('Tap to move in that direction', canvas.width/2, canvas.height/2 + 60);
+        }
+                `;
+            } else {
+                // Default game logic for unknown templates
+                console.log("Using default game logic for template: " + templateName);
+            }
+
+            let touchControlsDiv = '';
+            let touchScript = '';
+            if (mobileControlsEnabled) {
+                // Create template-specific touch controls
+                if (globalState.selectedTemplate === 'crossy') {
+                    touchControlsDiv = `
+    <div id="touch-controls" style="display: none; width: 100%; max-width: 480px; margin-top: 15px; user-select: none;">
+        <div style="display: flex; justify-content: space-around; margin-bottom: 10px;">
+            <button class="touch-btn" id="touch-action">⬆️</button>
+        </div>
+        <div style="display: flex; justify-content: space-around;">
+            <button class="touch-btn" id="touch-left">⬅️</button>
+            <button class="touch-btn" id="touch-down">⬇️</button>
+            <button class="touch-btn" id="touch-right">➡️</button>
+        </div>
+    </div>`;
+                } else {
+                    touchControlsDiv = `
+    <div id="touch-controls" style="display: none; justify-content: space-around; width: 100%; max-width: 480px; margin-top: 15px; user-select: none;">
+        <button class="touch-btn" id="touch-left">⬅️</button>
+        <button class="touch-btn" id="touch-action">⬆️</button>
+        <button class="touch-btn" id="touch-right">➡️</button>
+    </div>`;
+                }
+                touchScript = `
+        const touchControlsEl = document.getElementById('touch-controls');
+        if (touchControlsEl) touchControlsEl.style.display = 'flex';
+
+        function handleGameTouch(actionType, eventType) {
+            if (eventType === 'start') {
+                if (actionType === 'action' && typeof handlePlayerAction === 'function') handlePlayerAction();
+                
+                // Handle directional controls for templates that support it
+                if (templateName === 'crossy' && typeof movePlayer === 'function') {
+                    if (actionType === 'left') movePlayer('left');
+                    if (actionType === 'right') movePlayer('right');
+                    if (actionType === 'down') movePlayer('down');
+                }
+            }
+            // if (eventType === 'end') { /* handle touch end if needed */ }
+        }
+
+        document.getElementById('touch-left')?.addEventListener('touchstart', (e) => { e.preventDefault(); handleGameTouch('left', 'start'); });
+        document.getElementById('touch-action')?.addEventListener('touchstart', (e) => { e.preventDefault(); handleGameTouch('action', 'start'); });
+        document.getElementById('touch-right')?.addEventListener('touchstart', (e) => { e.preventDefault(); handleGameTouch('right', 'start'); });
+        document.getElementById('touch-down')?.addEventListener('touchstart', (e) => { e.preventDefault(); handleGameTouch('down', 'start'); });
+        
+        canvas.addEventListener('click', function(e) { // Also handle mouse click on canvas for desktop
+            if (typeof handleCanvasTap === 'function') {
+                 const rect = canvas.getBoundingClientRect();
+                 const clickX = e.clientX - rect.left;
+                 const clickY = e.clientY - rect.top;
+                 handleCanvasTap(clickX, clickY);
+            }
+        });
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (typeof handleCanvasTap === 'function') {
+                 const rect = canvas.getBoundingClientRect();
+                 const touchX = e.touches[0].clientX - rect.left;
+                 const touchY = e.touches[0].clientY - rect.top;
+                 handleCanvasTap(touchX, touchY);
+            }
+        }, { passive: false });
+        `;
+            }
+
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>${title}</title>
+    <style>
+        body { margin: 0; padding: 10px; background: #222; color: white; font-family: Arial, sans-serif; text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 100vh; justify-content: center; }
+        canvas { border: 2px solid #667eea; background: #87CEEB; touch-action: none; max-width: 100%; image-rendering: pixelated; /* For pixel art games */ }
+        .controls { margin: 15px 0; }
+        button { padding: 10px 18px; margin: 5px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .touch-btn { padding: 15px 25px; font-size: 24px; background-color: rgba(102, 126, 234, 0.8); border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h1>${title}</h1>
+    <p>Generated by GameGen AI</p>
+    ${aiLogicComment}
+    <canvas id="gameCanvas" width="480" height="320"></canvas>
+    <div class="controls" id="desktop-controls">
+        <button onclick="startGameLogic()">Start Game</button>
+        <button onclick="resetGameLogic()">Reset</button>
+    </div>
+    ${touchControlsDiv}
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const config = ${JSON.stringify(globalState.gameParameters, null, 2)};
+        const templateName = "${globalState.selectedTemplate || 'Unknown'}";
+        console.log("Game Config Loaded:", config, "Template:", templateName);
+        // AI Logic Prompt (for developer reference): ${globalState.aiLogicPrompt ? globalState.aiLogicPrompt.replace(/`/g, '\`') : 'N/A'}
+
+        ${gameLogicScript}
+
+        ${touchScript}
+
+        // Add keyboard controls for desktop
+        window.addEventListener('keydown', function(e) {
+            if (e.key === ' ' || e.key === 'ArrowUp') {
+                if (typeof handlePlayerAction === 'function') handlePlayerAction();
+            }
+            
+            // Add arrow key controls for templates that support directional movement
+            if (templateName === 'crossy' && typeof movePlayer === 'function') {
+                if (e.key === 'ArrowLeft') movePlayer('left');
+                if (e.key === 'ArrowRight') movePlayer('right');
+                if (e.key === 'ArrowDown') movePlayer('down');
+            }
+        });
+        
+        // Initialize
+        displayInitialMessage();
+    <\/script>
+</body>
+</html>
+`;
+        }
+
+        function shareGame() {
+            const title = document.getElementById('game-title').value || 'My Game';
+            const shareData = {
+                title: `Check out my ${title}!`,
+                text: `I created this awesome game using GameGen AI! Theme: ${generatedAssets.theme || 'Custom'}`,
+                url: window.location.href
+            };
+            
+            if (navigator.share) {
+                navigator.share(shareData);
+            } else {
+                // Fallback
+                const shareText = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert('🔗 Game details copied to clipboard!\nShare with your friends!');
+                });
+            }
+        }
+
+        function addIAPItemField() {
+            const container = document.getElementById('iap-items-container');
+            const itemCount = container.querySelectorAll('.iap-item').length; // More robust way to count
+            if (itemCount >= 5) { // Limit to 5 IAP items for simplicity
+                alert('Maximum of 5 IAP items allowed.');
+                return;
+            }
+            const div = document.createElement('div');
+            div.className = 'form-group iap-item';
+            div.innerHTML = `
+                <label>IAP Item ${itemCount + 1} (e.g., 'Gold Coins Pack', 'Unlock Special Character')</label>
+                <input type="text" class="iap-item-input" placeholder="Describe IAP item...">
+            `;
+            container.appendChild(div);
+        }
+
+        // Ensure updateTheme function exists if called by an event listener, or remove listener
+        function updateTheme() {
+            // Placeholder for theme update logic if needed in the future
+            // console.log('Theme selected:', document.getElementById('theme-select').value);
+        }
+
+    </script>
+</body>
+
+</html>
+
